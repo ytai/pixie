@@ -1,47 +1,37 @@
 #include <xc.inc>
 
-readbit MACRO dest
-    LOCAL wait_rising
-    LOCAL wait_falling
-    wait_rising:
-    btfss PORTA, 0
-    bra wait_rising
+GLOBAL _bit_count
 
-    clrw
-    lslf dest, f
+; This entire handler takes 15 cycles to execute.
+PSECT intentry,class=CODE,reloc=2,delta=2
+    movf PORTA, w         ; Sample PORTA. Bit 0 is the input.
+    decfsz _bit_count, f  ; Decrement bit count. If zero, we're in echo mode.
+    bra read_mode
+
+    ; echo mode handling.
+    bsf PORTA, 1          ; Generate rising edge (bit 1).
+    lslf WREG, w          ; Shift the input bit to the output position.
+    movwf PORTA           ; We're setting all PORTA bits, but bit 1 is the only output.
+    movlw 1               ; Increment bit count.
+    addwf _bit_count
+    clrf PORTA            ; Generate falling edge.
     nop
 
-    btfsc PORTA, 0
-    movlw 1
-    iorwf dest, f
-
-    wait_falling:
-    btfsc PORTA, 0
-    bra wait_falling
-ENDM
-
-GLOBAL _Read
-GLOBAL _r, _g, _b
-
-PSECT text,class=CODE,reloc=2,delta=2
-  _Read:
-    REPT 8
-    readbit _g
-    ENDM
-
-    REPT 8
-    readbit _r
-    ENDM
-
-    REPT 8
-    readbit _b
-    ENDM
-
-    return
-
-  PSECT intentry,class=CODE,reloc=2,delta=2
-    rlf PORTA, f
-    clrf TMR0
-    BANKSEL(IOCAF)
+  cleanup:
+    clrf TMR0             ; Clear the idle time counter.
+    BANKSEL(IOCAF)        ; Clear the interrupt.
     clrf BANKMASK(IOCAF)
     retfie
+
+    ; read mode handling.
+  read_mode:
+    movwi FSR0++          ; Save the bit into the color array.
+
+    ; Save FSR0 to the shadow register.
+    movf FSR0L, w
+    BANKSEL(FSR0L_SHAD)
+    movwf BANKMASK(FSR0L_SHAD)
+
+    bra cleanup
+
+

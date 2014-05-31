@@ -63,33 +63,51 @@ static void InitializePins() {
   TRISA = ~(RGB_PIN_MASK | DOUT_PIN_MASK);
 }
 
-static void InitializeEcho() {
-  IOCAP0 = 1;
-  IOCAN0 = 1;
-}
-
 static void InitializeTimer() {
   OPTION_REG = 0x07;
 }
 
-bank0 uint8_t r, g, b;
+uint8_t color_array[24];
+volatile uint8_t bit_count;
 
 void LatchColor() {
+    uint8_t r, g, b, i;
+    uint8_t const * p = color_array;
+
+    // Read Green bits.
+    g = 0;
+    for (i = 0; i < 8; ++i) {
+      g <<= 1;
+      g |= (*p++ & 1);
+    }
+
+    // Read Red bits.
+    r = 0;
+    for (i = 0; i < 8; ++i) {
+      r <<= 1;
+      r |= (*p++ & 1);
+    }
+
+    // Read Blue bits.
+    b = 0;
+    for (i = 0; i < 8; ++i) {
+      b <<= 1;
+      b |= (*p++ & 1);
+    }
+
+    // Prepare the new values in the PWM periods.
     PWM3DCH = r;
     PWM3DCL = r;
     PWM2DCH = g;
     PWM2DCL = g;
     PWM1DCH = b;
     PWM1DCL = b;
+
+    // Latch all at once.
     PWMLD = 0x07;
 }
 
-// Implemented in assembly.
-void Read();
-
 // TODO:
-// - Optimize.
-// - Derive timing requirements.
 // - Watchdog.
 // - Over-temperature protection.
 
@@ -101,27 +119,41 @@ void main() {
 
   InitializePwm();
   InitializePins();
-  InitializeEcho();
   InitializeTimer();
 
-  // Enable interrupts
-  GIE = 1;
+  // Enable interrupts on rising edge of DIN.
+  IOCAP0 = 1;
+  IOCIE = 1;
+
+  // Wait for silence. Do not take interrupts and do not set the output.
+  TMR0 = 0;
+  while (TMR0 < 30) {
+    if (IOCAF0) {
+      TMR0 = 0;
+      IOCAF0 = 0;
+    }
+  }
 
   while (true) {
-    asm("BANKSEL 0");
-    Read();
+    // FSR0 needs to point to the beginning of the color array.
+    FSR0 = (uint16_t) color_array;
 
-    // Echo on.
-    IOCIE = 1;
+    // And we have 24 bits left to read (+1, as 0 means done).
+    bit_count = 25;
 
-    // Wait for silence.
+    // Ready to handle interrupts.
+    GIE = 1;
+
+    // Wait for read to begin, followed by a silence.
+    // In the meantime, the interrupt handler does the job.
+    while (bit_count == 25);
     TMR0 = 0;
     while (TMR0 < 30);
 
-    // Echo off.
-    IOCIE = 0;
+    // Disable interrupts while processing.
+    GIE = 0;
 
-    // Latch.
+    // The color array not contains the 24 bits we've read. Latch.
     LatchColor();
   }
 }
