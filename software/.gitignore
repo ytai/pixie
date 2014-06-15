@@ -1,0 +1,9 @@
+build
+dist
+disassembly
+nbproject/Makefile*.mk
+nbproject/*.bash
+nbproject/*.properties
+nbproject/private
+
+
