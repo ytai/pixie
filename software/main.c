@@ -5,11 +5,11 @@
 
 #pragma config FOSC = INTOSC, WDTE = ON, CP = OFF, PLLEN = ON, BOREN = OFF, MCLRE = ON, CLKOUTEN = OFF, PWRTE = OFF, LPBOREN = ON,
 
-#define DIN_PIN_MASK (1 << 0)
-#define DOUT_PIN_MASK (1 << 1)
-#define RED_PIN_MASK   (1 << 2)
-#define GREEN_PIN_MASK (1 << 4)
-#define BLUE_PIN_MASK  (1 << 5)
+#define DIN_PIN_MASK (1 << 5)
+#define DOUT_PIN_MASK (1 << 4)
+#define RED_PIN_MASK   (1 << 0)
+#define GREEN_PIN_MASK (1 << 1)
+#define BLUE_PIN_MASK  (1 << 2)
 #define RGB_PIN_MASK (RED_PIN_MASK | GREEN_PIN_MASK | BLUE_PIN_MASK)
 
 // How long of a silence on the line is considered a latch event.
@@ -75,10 +75,6 @@ static void InitializePins() {
   ANSELA = 0;
   // All outputs default to 0.
   LATA = 0;
-  // LED pins are open drain.
-  ODCONA = RGB_PIN_MASK;
-  // PWM 1/2 go to their alternate pins.
-  APFCON = 0x03;
   // Set the output pins as output.
   TRISA = ~(RGB_PIN_MASK | DOUT_PIN_MASK);
 }
@@ -152,21 +148,21 @@ static void ConvertColor() {
     g = 0;
     for (i = 0; i < 8; ++i) {
       g <<= 1;
-      g |= (*p++ & 1);
+      g |= ((*p++ >> 5) & 1);
     }
 
     // Read Red bits.
     r = 0;
     for (i = 0; i < 8; ++i) {
       r <<= 1;
-      r |= (*p++ & 1);
+      r |= ((*p++ >> 5) & 1);
     }
 
     // Read Blue bits.
     b = 0;
     for (i = 0; i < 8; ++i) {
       b <<= 1;
-      b |= (*p++ & 1);
+      b |= ((*p++ >> 5) & 1);
     }
   }
 }
@@ -194,15 +190,15 @@ void main() {
   InitializeTemperature();
 
   // Enable interrupts on rising edge of DIN.
-  IOCAP0 = 1;
+  IOCAP5 = 1;
   IOCIE = 1;
 
   // Wait for silence. Do not take interrupts and do not set the output.
   TMR0 = 0;
   while (TMR0 < LATCH_TIME) {
-    if (IOCAF0) {
+    if (IOCAF5) {
       TMR0 = 0;
-      IOCAF0 = 0;
+      IOCAF5 = 0;
     }
   }
 
