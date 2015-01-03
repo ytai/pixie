@@ -2,7 +2,7 @@
     <type>com.microchip.mplab.nbide.embedded.makeproject</type>
     <configuration>
         <data xmlns="http://www.netbeans.org/ns/make-project/1">
-            <name>PIC12F1571Test</name>
+            <name>Pixie</name>
             <creation-uuid>93678740-9680-4c48-ba03-73a6089436bf</creation-uuid>
             <make-project-type>0</make-project-type>
             <c-extensions>c</c-extensions>
