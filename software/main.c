@@ -72,8 +72,8 @@ static void InitializePwm() {
 static void InitializePins() {
   // Disable analog inputs.
   ANSELA = 0;
-  // All outputs default to 0.
-  LATA = 0;
+  // All outputs but Dout are low.
+  LATA = DOUT_PIN_MASK;
   // Set the output pins as output.
   TRISA = ~(RGB_PIN_MASK | DOUT_PIN_MASK);
 }
@@ -164,20 +164,17 @@ static void ConvertColor() {
 
     // Read Red bits.
     for (i = 0; i < 8; ++i) {
-      r <<= 1;
-      r |= ((*p++ >> 5) & 1);
+      r |= ((*p++ >> 5) & 1) << i;
     }
 
     // Read Green bits.
     for (i = 0; i < 8; ++i) {
-      g <<= 1;
-      g |= ((*p++ >> 5) & 1);
+      g |= ((*p++ >> 5) & 1) << i;
     }
 
     // Read Blue bits.
     for (i = 0; i < 8; ++i) {
-      b <<= 1;
-      b |= ((*p++ >> 5) & 1);
+      b |= ((*p++ >> 5) & 1) << i;
     }
   }
 }
@@ -201,8 +198,9 @@ void main() {
   InitializeTimers();
   InitializeTemperature();
 
-  // Enable interrupts on rising edge of DIN.
+  // Enable interrupts on any edge of DIN.
   IOCAP5 = 1;
+  IOCAN5 = 1;
   IOCIE = 1;
 
   // Wait for silence. Do not take interrupts and do not set the output.
