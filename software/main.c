@@ -151,28 +151,27 @@ static void ReadTemperature() {
 }
 
 static void ConvertColor() {
+  r = g = b = 0;
+
   // Note the the temperature units used are reversed: bigger number == lower
   // temperature. So the condition below actually means temp <= 60C.
-  if (temperature >= TEMPERATURE_60C && bit_count == 1) {
+  if (temperature >= TEMPERATURE_60C) {
     uint8_t i;
     uint8_t const * p = color_array;
 
     // Read Green bits.
-    g = 0;
     for (i = 0; i < 8; ++i) {
       g <<= 1;
       g |= ((*p++ >> 5) & 1);
     }
 
     // Read Red bits.
-    r = 0;
     for (i = 0; i < 8; ++i) {
       r <<= 1;
       r |= ((*p++ >> 5) & 1);
     }
 
     // Read Blue bits.
-    b = 0;
     for (i = 0; i < 8; ++i) {
       b <<= 1;
       b |= ((*p++ >> 5) & 1);
@@ -188,9 +187,6 @@ static void LatchColor() {
 
     // Latch all at once.
     PWMLD = 0x07;
-
-    // Force off until told otherwise.
-    r = g = b = 0;
 }
 
 void main() {
@@ -220,41 +216,35 @@ void main() {
     // FSR0 needs to point to the beginning of the color array.
     FSR0 = (uint16_t) color_array;
 
-    // And we have 24 bits left to read (+1, as 0 means done).
+    // And we have 24 bits left to read (+1, as 1 means done).
     bit_count = 25;
 
     // Ready to handle interrupts.
     GIE = 1;
 
-    // Wait for read to begin, followed by a silence.
-    // In the meantime, the interrupt handler does the job.
-    while (bit_count == 25);
+    // Wait for read to complete. The interrupt handler will decrement
+    // bit_count.
+    while (bit_count != 1);
 
+    // Then, wait for silence of LATCH_TIME. The interrupt handler will clear
+    // timer 0 on every edge, so we'll get out of this loop only after
+    // LATCH_TIME with no edges.
     TMR0 = 0;
-
-    // While we're waiting, read the temperature. This should take ~250us, so
-    // we won't be missing our latch time, which is much greater.
-    ReadTemperature();
-
-    // And also while we're waiting, if we're done reading our own value,
-    // convert it. If we got a silence before having read 24 bits, we will
-    // simply skip the conversion and latch the previous values.
-    while (TMR0 < LATCH_TIME) {
-      if (bit_count == 1) {
-        ConvertColor();
-        break;
-      }
-    }
-
     while (TMR0 < LATCH_TIME);
 
     // Disable interrupts while processing.
     GIE = 0;
 
-    // Clear the watchdog.
-    CLRWDT();
+    // Read the temperature. This should take ~250us.
+    ReadTemperature();
   
+    // Convert the color read by the interrupt handler.
+    ConvertColor();
+
     // The color array not contains the 24 bits we've read. Latch.
     LatchColor();
+
+    // Clear the watchdog.
+    CLRWDT();
   }
 }
