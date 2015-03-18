@@ -16,18 +16,17 @@
 // Units are 32[us] per count.
 #define LATCH_TIME 30
 
-#define TEMPERATURE_20C 82
-#define TEMPERATURE_30C 76
-#define TEMPERATURE_40C 69
-#define TEMPERATURE_50C 62
-#define TEMPERATURE_60C 56
-#define TEMPERATURE_70C 49
+#define TEMPERATURE_20C 132
+#define TEMPERATURE_30C 125
+#define TEMPERATURE_40C 119
+#define TEMPERATURE_50C 112
+#define TEMPERATURE_60C 106
+#define TEMPERATURE_70C 99
 
 // To convert this value to real temperature (in Celcius):
- // T = 144.43 - temperature * 1.5151515
+// T = -temperature * 1.5151515 + 323
 static uint8_t temperature;
 
-static uint16_t t;
 static uint8_t r, g, b;
 uint8_t color_array[24];
 volatile uint8_t bit_count;
@@ -105,26 +104,28 @@ static inline void Timer2Delay(uint8_t count) {
   while (TMR2 < count);
 }
 
-static void ReadTemperature() {
+static inline uint16_t AcquireTemperature() {
   // Configure the ADC to acquire the temperature indicator.
   ADCON0 = 0x75;
 
   // Wait for acquisition (200us).
-  Timer2Delay(200);
+  Timer2Delay(100);
 
   // Sample.
   GO = 1;       // Start.
   while (GO);   // Wait completion.
 
-  t = ADRES;
+  return ADRES;
+}
 
+static inline uint16_t AcquireVref() {
     // Enable the FVR amplifier (2x)
   FVRCON = 0xB2;
 
   // Configure the ADC to acquire the FVR.
   ADCON0 = 0x7D;
 
-  // Wait for acquisition (10us).
+  // Wait for acquisition (20us).
   Timer2Delay(10);
 
   // Sample.
@@ -134,7 +135,19 @@ static void ReadTemperature() {
   // Disable the FVR amplifier.
   FVRCON = 0xB0;
 
-  temperature = (0xFFC0 - t) / ADRESH;
+  return ADRES;
+}
+
+static void ReadTemperature() {
+  uint16_t v1 = AcquireVref();
+  uint16_t t = AcquireTemperature();
+  uint16_t v2 = AcquireVref();
+
+  // Turn ADC off.
+  ADCON0 = 0;
+
+  uint8_t vavg = ((v1 >> 1) + (v2 >> 1) + 128) >> 8;
+  temperature = (0xFFC0 - t) / vavg - 200;
 }
 
 static void ConvertColor() {
