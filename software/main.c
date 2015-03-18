@@ -158,7 +158,7 @@ static void ConvertColor() {
 
   // Note the the temperature units used are reversed: bigger number == lower
   // temperature. So the condition below actually means temp <= 60C.
-  if (temperature >= TEMPERATURE_60C) {
+  if (temperature >= TEMPERATURE_60C && bit_count == 1) {
     uint8_t i;
     uint8_t const * p = color_array;
 
@@ -225,9 +225,8 @@ void main() {
     // Ready to handle interrupts.
     GIE = 1;
 
-    // Wait for read to complete. The interrupt handler will decrement
-    // bit_count.
-    while (bit_count != 1);
+    // Wait for read to start. The interrupt handler will decrement bit_count.
+    while (bit_count == 25);
 
     // Then, wait for silence of LATCH_TIME. The interrupt handler will clear
     // timer 0 on every edge, so we'll get out of this loop only after
