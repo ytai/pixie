@@ -82,6 +82,9 @@ static void InitializeTimers() {
   // Timer 0 : Instruction clock / 256 = 31.25kHz (32us).
   OPTION_REG = 0x07;
 
+  // Timer 1: Instruction clock / 8 = 1MHz (1us).
+  T1CON = 0x31;
+
   // Timer 2: Instruction clock / 16 = 500kHz (2us).
   T2CON = 0x06;
 }
@@ -99,9 +102,9 @@ static void InitializeTemperature() {
   while (!FVRRDY);
 }
 
-static inline void Timer2Delay(uint8_t count) {
-  TMR2 = 0;
-  while (TMR2 < count);
+static inline void Timer1Delay(uint16_t count) {
+  TMR1 = 0;
+  while (TMR1 < count);
 }
 
 static inline uint16_t AcquireTemperature() {
@@ -109,7 +112,7 @@ static inline uint16_t AcquireTemperature() {
   ADCON0 = 0x75;
 
   // Wait for acquisition (200us).
-  Timer2Delay(100);
+  Timer1Delay(200);
 
   // Sample.
   GO = 1;       // Start.
@@ -126,7 +129,7 @@ static inline uint16_t AcquireVref() {
   ADCON0 = 0x7D;
 
   // Wait for acquisition (20us).
-  Timer2Delay(10);
+  Timer1Delay(20);
 
   // Sample.
   GO = 1;       // Start.
