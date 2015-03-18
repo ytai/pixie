@@ -183,13 +183,13 @@ static void ConvertColor() {
 }
 
 static void LatchColor() {
-    // Prepare the new values in the PWM periods.
-    PWM1DC = (uint16_t) g * g;
-    PWM2DC = (uint16_t) r * r;
-    PWM3DC = (uint16_t) b * b;
+  // Prepare the new values in the PWM periods.
+  PWM1DC = (uint16_t) g * g;
+  PWM2DC = (uint16_t) r * r;
+  PWM3DC = (uint16_t) b * b;
 
-    // Latch all at once.
-    PWMLD = 0x07;
+  // Latch all at once.
+  PWMLD = 0x07;
 }
 
 void main() {
