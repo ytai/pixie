@@ -222,7 +222,8 @@ void main() {
     // And we have 24 bits left to read (+1, as 1 means done).
     bit_count = 25;
 
-    // Ready to handle interrupts.
+    // Ready to handle interrupts. Clear first.
+    IOCAF5 = 0;
     GIE = 1;
 
     // Wait for read to start. The interrupt handler will decrement bit_count.
