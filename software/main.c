@@ -159,16 +159,16 @@ static void ConvertColor() {
     uint8_t i;
     uint8_t const * p = color_array;
 
-    // Read Green bits.
-    for (i = 0; i < 8; ++i) {
-      g <<= 1;
-      g |= ((*p++ >> 5) & 1);
-    }
-
     // Read Red bits.
     for (i = 0; i < 8; ++i) {
       r <<= 1;
       r |= ((*p++ >> 5) & 1);
+    }
+
+    // Read Green bits.
+    for (i = 0; i < 8; ++i) {
+      g <<= 1;
+      g |= ((*p++ >> 5) & 1);
     }
 
     // Read Blue bits.
@@ -181,9 +181,9 @@ static void ConvertColor() {
 
 static void LatchColor() {
     // Prepare the new values in the PWM periods.
-    PWM3DC = (uint16_t) r * r;
-    PWM2DC = (uint16_t) g * g;
-    PWM1DC = (uint16_t) b * b;
+    PWM1DC = (uint16_t) g * g;
+    PWM2DC = (uint16_t) r * r;
+    PWM3DC = (uint16_t) b * b;
 
     // Latch all at once.
     PWMLD = 0x07;
