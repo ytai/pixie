@@ -1,3 +1,5 @@
+funclist
+*.obj
 build
 dist
 disassembly
