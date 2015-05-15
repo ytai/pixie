@@ -16,12 +16,12 @@
 // Units are 32[us] per count.
 #define LATCH_TIME 30
 
-#define TEMPERATURE_20C 132
-#define TEMPERATURE_30C 125
-#define TEMPERATURE_40C 119
-#define TEMPERATURE_50C 112
-#define TEMPERATURE_60C 106
-#define TEMPERATURE_70C 99
+#define TEMPERATURE_20C 200
+#define TEMPERATURE_30C 193
+#define TEMPERATURE_40C 187
+#define TEMPERATURE_50C 180
+#define TEMPERATURE_60C 174
+#define TEMPERATURE_70C 167
 
 // To convert this value to real temperature (in Celcius):
 // T = -temperature * 1.5151515 + 323
