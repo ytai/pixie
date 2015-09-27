@@ -16,16 +16,11 @@
 // Units are 32[us] per count.
 #define LATCH_TIME 30
 
-#define TEMPERATURE_20C 200
-#define TEMPERATURE_30C 193
-#define TEMPERATURE_40C 187
-#define TEMPERATURE_50C 180
-#define TEMPERATURE_60C 174
-#define TEMPERATURE_70C 167
-
 // To convert this value to real temperature (in Celcius):
-// T = -temperature * 1.5151515 + 323
+// T = K -temperature * 1.5151515, where K is some calibration constant,
+// typically around 320.
 static uint8_t temperature;
+static uint8_t max_temp;
 
 static uint8_t r, g, b;
 uint8_t color_array[24];
@@ -157,8 +152,8 @@ static void ConvertColor() {
   r = g = b = 0;
 
   // Note the the temperature units used are reversed: bigger number == lower
-  // temperature. So the condition below actually means temp <= 60C.
-  if (temperature >= TEMPERATURE_60C && bit_count == 1) {
+  // temperature. So the condition below actually means temp <= max_temp.
+  if (temperature >= max_temp && bit_count == 1) {
     uint8_t i;
     uint8_t const * p = color_array;
 
@@ -189,6 +184,32 @@ static void LatchColor() {
   PWMLD = 0x07;
 }
 
+static inline void SerialSend(uint8_t b) {
+  // Start bit.
+  LATA &= ~DOUT_PIN_MASK;
+  Timer1Delay(99);
+  for (unsigned i = 0; i < 8; ++i) {
+    if (b & 1) {
+      LATA |= DOUT_PIN_MASK;
+    } else {
+      LATA &= ~DOUT_PIN_MASK;
+    }
+    b >>= 1;
+    Timer1Delay(99);
+  }
+  // Stop bit.
+  LATA |= DOUT_PIN_MASK;
+  Timer1Delay(99);
+}
+
+static uint8_t ReadMaxTemperature() {
+  PMADR = 0x8000;
+  CFGS = 1;
+  RD = 1;
+  asm("nop\nnop\n");
+  return PMDATL;
+}
+
 void main() {
   // High speed.
   OSCCONbits.IRCF = 0xe;
@@ -197,6 +218,15 @@ void main() {
   InitializePins();
   InitializeTimers();
   InitializeTemperature();
+
+  max_temp = ReadMaxTemperature();
+  if (max_temp == 0xFF) {
+    for (;;) {
+      ReadTemperature();
+      SerialSend(temperature);
+      Timer1Delay(1000);
+    }
+  }
 
   // Enable interrupts on any edge of DIN.
   IOCAP5 = 1;
