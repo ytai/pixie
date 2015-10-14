@@ -69,6 +69,10 @@ static void InitializePins() {
   ANSELA = 0;
   // All outputs but Dout are low.
   LATA = DOUT_PIN_MASK;
+  // Weak pull-up on Din.
+  WPUA = DIN_PIN_MASK;
+  // Schmidt-trigger input on Din.
+  INLVLA = DIN_PIN_MASK;
   // Set the output pins as output.
   TRISA = ~(RGB_PIN_MASK | DOUT_PIN_MASK);
 }
