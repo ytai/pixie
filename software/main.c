@@ -127,8 +127,8 @@ static inline uint16_t AcquireVref() {
   // Configure the ADC to acquire the FVR.
   ADCON0 = 0x7D;
 
-  // Wait for acquisition (20us).
-  Timer1Delay(20);
+  // Wait for acquisition (50us).
+  Timer1Delay(50);
 
   // Sample.
   GO = 1;       // Start.
@@ -270,7 +270,7 @@ void main() {
     // Disable interrupts while processing.
     GIE = 0;
 
-    // Read the temperature. This should take ~250us.
+    // Read the temperature. This should take ~400us.
     ReadTemperature();
   
     // Convert the color read by the interrupt handler.
