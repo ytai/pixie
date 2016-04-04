@@ -228,6 +228,8 @@ void main() {
     for (;;) {
       ReadTemperature();
       SerialSend(temperature);
+
+      CLRWDT();
       Timer1Delay(1000);
     }
   }
